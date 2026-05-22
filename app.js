@@ -1840,6 +1840,7 @@ function addIngredientToCustomizer(ingId) {
 const ALL_CATEGORIES = ['全部', '家常菜', '粤菜', '川湘辣菜', '汤类', '主食', '早餐', '凉菜', '其他'];
 
 let pickerDayIndex, pickerMealType, pickerIsActual;
+let currentPickerCategory = '全部';
 
 function openDishPicker(dayIndex, mealType, isActual = false) {
   pickerDayIndex = dayIndex; pickerMealType = mealType; pickerIsActual = isActual;
@@ -2109,6 +2110,7 @@ function confirmPickerQuick() {
 }
 
 function renderPickerCategories(activeCat) {
+  currentPickerCategory = activeCat;
   document.getElementById('picker-categories').innerHTML = ALL_CATEGORIES.map(c =>
     `<button class="picker-cat-btn ${c === activeCat ? 'active' : ''}" data-picker-cat="${c}">${c}</button>`
   ).join('');
