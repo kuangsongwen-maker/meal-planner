@@ -2194,11 +2194,23 @@ document.addEventListener('click', function (e) {
     return;
   }
 
-  // 周导航
-  if (target.id === 'btn-prev-week') { currentWeekStart = shiftWeek(currentWeekStart, -1); }
-  else if (target.id === 'btn-next-week') { currentWeekStart = shiftWeek(currentWeekStart, 1); }
-  else if (target.id === 'btn-this-week') { currentWeekStart = getMonday(new Date()); }
-  if (['btn-prev-week', 'btn-next-week', 'btn-this-week'].includes(target.id)) {
+  // 周导航：切换到空白周时自动复制当前周菜单
+  if (target.id === 'btn-prev-week' || target.id === 'btn-next-week' || target.id === 'btn-this-week') {
+    const oldWeek = currentWeekStart;
+    if (target.id === 'btn-prev-week') {
+      currentWeekStart = shiftWeek(currentWeekStart, -1);
+    } else if (target.id === 'btn-next-week') {
+      currentWeekStart = shiftWeek(currentWeekStart, 1);
+    } else {
+      currentWeekStart = getMonday(new Date());
+    }
+    // 目标周为空且与当前周不同，从旧周复制
+    if (oldWeek !== currentWeekStart && !mealPlans[currentWeekStart]) {
+      const oldPlan = mealPlans[oldWeek];
+      if (oldPlan) {
+        mealPlans[currentWeekStart] = JSON.parse(JSON.stringify(oldPlan));
+      }
+    }
     renderMealPlanner(); return;
   }
 
