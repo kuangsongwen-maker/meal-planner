@@ -675,26 +675,32 @@ function getDayCaloriesByDate(dateStr) {
 
 // ============ 工具函数 ============
 
+function localDateStr(date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
 function getMonday(date) {
   const d = new Date(date);
   const day = d.getDay();
   const diff = day === 0 ? -6 : 1 - day;
   d.setDate(d.getDate() + diff);
   d.setHours(0, 0, 0, 0);
-  return d.toISOString().split('T')[0];
+  return localDateStr(d);
 }
 
 function getWeekEnd(weekStart) {
-  const start = new Date(weekStart + 'T00:00:00');
-  const end = new Date(start);
-  end.setDate(end.getDate() + 6);
-  return end.toISOString().split('T')[0];
+  const d = new Date(weekStart + 'T00:00:00');
+  d.setDate(d.getDate() + 6);
+  return localDateStr(d);
 }
 
 function shiftWeek(weekStart, delta) {
   const d = new Date(weekStart + 'T00:00:00');
   d.setDate(d.getDate() + delta * 7);
-  return d.toISOString().split('T')[0];
+  return localDateStr(d);
 }
 
 function generateId(prefix) {
