@@ -1,0 +1,7 @@
+server.py
+download_food_db.py
+food_data.csv
+__pycache__/
+*.pyc
+.DS_Store
+.vercel

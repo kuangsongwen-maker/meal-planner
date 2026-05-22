@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>三餐规划 v2</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="app-container">
+  <!-- ===== 侧边栏 ===== -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <h1>三餐规划</h1>
+    </div>
+    <nav class="sidebar-nav">
+      <button class="nav-item active" data-nav="user">
+        <span class="nav-icon">👤</span> 用户
+      </button>
+      <button class="nav-item" data-nav="planner">
+        <span class="nav-icon">📅</span> 菜单规划
+      </button>
+      <button class="nav-item" data-nav="analysis">
+        <span class="nav-icon">📊</span> 热量分析
+      </button>
+      <button class="nav-item" data-nav="shopping">
+        <span class="nav-icon">🛒</span> 食材清单
+      </button>
+      <button class="nav-item" data-nav="dishes">
+        <span class="nav-icon">🍳</span> 菜品库
+      </button>
+    </nav>
+    <div class="sidebar-unit-toggle">
+      <span class="unit-label">热量单位</span>
+      <button class="unit-btn active" data-unit="kcal">kcal</button>
+      <button class="unit-btn" data-unit="kj">kJ</button>
+    </div>
+  </aside>
+
+  <!-- ===== 侧边栏遮罩（移动端） ===== -->
+  <div class="sidebar-overlay hidden" id="sidebar-overlay"></div>
+
+  <!-- ===== 主内容区 ===== -->
+  <main class="main-content">
+
+    <!-- 移动端菜单按钮 -->
+    <button class="menu-toggle" id="menu-toggle">☰ 菜单</button>
+
+    <!-- ===== 面板1: 用户 ===== -->
+    <section id="panel-user" class="panel active">
+      <h2 class="panel-title">用户管理</h2>
+      <div id="user-content">
+        <!-- JS 动态渲染 -->
+      </div>
+      <div id="weight-section">
+        <!-- JS 动态渲染体重追踪 -->
+      </div>
+      <div id="user-form-wrap" class="hidden">
+        <h3 id="user-form-title">添加用户</h3>
+        <form id="user-form" autocomplete="off" class="standard-form">
+          <input type="hidden" id="user-id">
+          <div class="form-row">
+            <div class="form-group">
+              <label>姓名 <span class="required">*</span></label>
+              <input type="text" id="user-name" required>
+            </div>
+            <div class="form-group">
+              <label>年龄</label>
+              <input type="number" id="user-age" min="1" max="120" value="30">
+            </div>
+            <div class="form-group">
+              <label>性别</label>
+              <select id="user-gender">
+                <option value="male">男</option>
+                <option value="female">女</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>工作/日常活动</label>
+              <select id="user-daily-pal">
+                <option value="1.4">久坐办公（程序员、文员、司机等，全天坐着）</option>
+                <option value="1.5">久坐+偶尔走动（设计师、学生等）</option>
+                <option value="1.6" selected>轻度活动（教师、销售、护士等，经常站立走动）</option>
+                <option value="1.8">中度体力（服务员、护工、流水线工人等）</option>
+                <option value="2.0">重度体力（建筑工、农活、搬运工等）</option>
+                <option value="2.2">极重度（职业运动员、矿工、军人等）</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>运动锻炼</label>
+              <select id="user-exercise-level">
+                <option value="0">几乎不运动</option>
+                <option value="120" selected>每周1-2次（散步/瑜伽/轻度球类）</option>
+                <option value="280">每周3-4次（跑步/游泳/力量训练）</option>
+                <option value="430">每周5-6次（中高强度训练）</option>
+                <option value="600">每天高强度训练或竞技体育</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>运动估算模式</label>
+              <select id="user-exercise-mode">
+                <option value="rough" selected>粗略估算（日均固定值）</option>
+                <option value="fine">精细估算（每日可不同，在菜单规划中设置）</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>体脂率 (%)</label>
+              <input type="number" id="user-bodyfat" min="2" max="60" step="0.1" placeholder="可选">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>身高 (cm)</label>
+              <input type="number" id="user-height" min="100" max="250" value="170" step="0.1">
+            </div>
+            <div class="form-group">
+              <label>体重 (kg)</label>
+              <input type="number" id="user-weight" min="30" max="300" value="65" step="0.1">
+            </div>
+            <div class="form-group">
+              <label>目标体重 (kg)</label>
+              <input type="number" id="user-target-weight" min="30" max="300" value="60" step="0.1">
+            </div>
+            <div class="form-group">
+              <label>目标体脂率 (%)</label>
+              <input type="number" id="user-target-bodyfat" min="2" max="60" step="0.1" placeholder="可选">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>目标</label>
+              <select id="user-target-habit">
+                <option value="lose">减重</option>
+                <option value="maintain">维持</option>
+                <option value="gain">增重</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>目标达成日期</label>
+              <input type="date" id="user-target-date">
+            </div>
+          </div>
+          <div class="form-actions">
+            <button type="button" class="btn btn-outline" id="btn-cancel-user">取消</button>
+            <button type="submit" class="btn btn-primary">保存</button>
+          </div>
+        </form>
+        <div id="user-stats" class="hidden"></div>
+      </div>
+    </section>
+
+    <!-- ===== 面板2: 菜单规划 ===== -->
+    <section id="panel-planner" class="panel">
+      <h2 class="panel-title">每周菜单规划</h2>
+      <div class="week-selector">
+        <button class="btn" id="btn-prev-week">&lt; 上一周</button>
+        <span class="week-label" id="week-label"></span>
+        <button class="btn" id="btn-next-week">下一周 &gt;</button>
+        <button class="btn btn-outline" id="btn-this-week">本周</button>
+      </div>
+      <div class="meal-grid" id="meal-grid"></div>
+    </section>
+
+    <!-- ===== 面板3: 热量分析 ===== -->
+    <section id="panel-analysis" class="panel">
+      <h2 class="panel-title">热量分析</h2>
+      <div class="analysis-view-selector">
+        <button class="btn analysis-view-btn active" data-analysis-view="day">日视图</button>
+        <button class="btn analysis-view-btn" data-analysis-view="week">周视图</button>
+        <button class="btn analysis-view-btn" data-analysis-view="month">月视图</button>
+      </div>
+      <div class="analysis-warning hidden" id="analysis-no-user">
+        ⚠️ 请先在"用户"面板创建用户并设置目标，才能进行热量分析
+      </div>
+      <div id="analysis-content">
+        <!-- JS 动态渲染 -->
+      </div>
+    </section>
+
+    <!-- ===== 面板4: 食材清单 ===== -->
+    <section id="panel-shopping" class="panel">
+      <h2 class="panel-title">食材采购清单</h2>
+      <div class="shopping-header">
+        <span id="shopping-stats"></span>
+        <button class="btn btn-sm" id="btn-reset-shopping">重置勾选</button>
+      </div>
+      <ul class="shopping-list" id="shopping-list"></ul>
+      <div class="shopping-empty hidden" id="shopping-empty">请先在菜单规划中选择菜品</div>
+    </section>
+
+    <!-- ===== 面板5: 菜品库 ===== -->
+    <section id="panel-dishes" class="panel">
+      <h2 class="panel-title">菜品库</h2>
+      <div class="dishes-toolbar">
+        <input type="text" class="search-input" id="dish-search" placeholder="搜索菜品...">
+        <select id="dish-category-filter" class="filter-select">
+          <option value="全部">全部分类</option>
+          <option value="家常菜">家常菜</option>
+          <option value="粤菜">粤菜</option>
+          <option value="川湘辣菜">川湘辣菜</option>
+          <option value="汤类">汤类</option>
+          <option value="主食">主食</option>
+          <option value="早餐">早餐</option>
+          <option value="凉菜">凉菜</option>
+          <option value="其他">其他</option>
+        </select>
+        <button class="btn btn-primary" id="btn-add-dish">+ 添加菜品</button>
+        <button class="btn btn-outline" id="btn-open-customizer">定制新菜品</button>
+        <button class="btn btn-outline" id="btn-open-ingredients">食材管理</button>
+      </div>
+      <div class="dishes-grid" id="dishes-grid"></div>
+    </section>
+
+    <!-- ===== 面板6: 食材库 ===== -->
+    <section id="panel-ingredients" class="panel">
+      <h2 class="panel-title">食材库</h2>
+      <div class="dishes-toolbar">
+        <input type="text" class="search-input" id="ingredient-search" placeholder="搜索食材...">
+        <select id="ingredient-category-filter" class="filter-select">
+          <option value="全部">全部分类</option>
+          <option value="蔬菜">蔬菜</option>
+          <option value="肉类">肉类</option>
+          <option value="海鲜">海鲜</option>
+          <option value="豆制品">豆制品</option>
+          <option value="主食">主食</option>
+          <option value="蛋奶">蛋奶</option>
+          <option value="调味品">调味品</option>
+          <option value="干货">干货</option>
+          <option value="水果">水果</option>
+          <option value="自定义">自定义</option>
+        </select>
+        <button class="btn btn-outline" id="btn-search-online">🔍 在线查找</button>
+        <button class="btn btn-primary" id="btn-add-ingredient">+ 添加食材</button>
+      </div>
+      <div id="ingredient-search-status" class="hidden"></div>
+      <div class="dishes-grid" id="ingredients-grid"></div>
+    </section>
+
+    <!-- ===== 面板7: 菜品定制 ===== -->
+    <section id="panel-customizer" class="panel">
+      <h2 class="panel-title">菜品定制</h2>
+      <div class="customizer-layout">
+        <!-- 左侧：食材选择 -->
+        <div class="customizer-left">
+          <h3>选择食材</h3>
+          <input type="text" class="search-input" id="customizer-search" placeholder="搜索食材添加到菜品...">
+          <div class="customizer-ingredient-list" id="customizer-ingredient-list"></div>
+        </div>
+        <!-- 右侧：已选食材 + 营养 -->
+        <div class="customizer-right">
+          <h3>已选食材组合</h3>
+          <div class="customizer-selected" id="customizer-selected">
+            <div class="customizer-empty-msg">从左侧搜索并添加食材</div>
+          </div>
+          <div class="customizer-cooking">
+            <label>烹饪方式：</label>
+            <select id="customizer-cooking-method">
+              <!-- JS 动态填充 -->
+            </select>
+          </div>
+          <div class="customizer-nutrition" id="customizer-nutrition">
+            <div class="nut-row"><span>总热量：</span><strong id="cust-cal">0</strong> kcal</div>
+            <div class="nut-row"><span>蛋白质：</span><strong id="cust-protein">0</strong> g</div>
+            <div class="nut-row"><span>碳水：</span><strong id="cust-carbs">0</strong> g</div>
+            <div class="nut-row"><span>脂肪：</span><strong id="cust-fat">0</strong> g</div>
+            <div class="nut-row"><span>膳食纤维：</span><strong id="cust-fiber">0</strong> g</div>
+            <div class="nut-row"><span>钠：</span><strong id="cust-sodium">0</strong> mg</div>
+            <div class="nut-row"><span>饱和脂肪：</span><strong id="cust-satfat">0</strong> g</div>
+            <div class="nut-row"><span>糖：</span><strong id="cust-sugar">0</strong> g</div>
+          </div>
+          <div class="customizer-save">
+            <input type="text" id="customizer-dish-name" placeholder="输入菜品名称..." class="search-input">
+            <button class="btn btn-primary" id="btn-save-custom-dish">💾 保存为自定义菜品</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- ===== 菜品选择弹窗 ===== -->
+<div class="modal-overlay hidden" id="modal-picker">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="picker-title">选择菜品</h3>
+      <button class="modal-close" id="btn-close-picker">&times;</button>
+    </div>
+    <div class="picker-tabs">
+      <button class="picker-tab active" data-picker-tab="dish">菜品</button>
+      <button class="picker-tab" data-picker-tab="quick">快速组合食材</button>
+    </div>
+    <!-- 菜品模式 -->
+    <div id="picker-dish-mode">
+      <input type="text" class="search-input" id="picker-search" placeholder="搜索菜品...">
+      <div class="picker-categories" id="picker-categories"></div>
+      <div class="picker-list" id="picker-list"></div>
+    </div>
+    <!-- 快速组合模式 -->
+    <div id="picker-quick-mode" class="hidden">
+      <input type="text" class="search-input" id="picker-quick-search" placeholder="搜索食材...">
+      <div class="picker-quick-ingredients" id="picker-quick-ingredients"></div>
+      <div class="picker-quick-selected" id="picker-quick-selected">
+        <div class="picker-quick-empty">点击上方食材添加，设置克数后确认</div>
+      </div>
+      <div class="picker-quick-options">
+        <label>烹饪方式：</label>
+        <select id="picker-quick-method"></select>
+      </div>
+      <div class="picker-quick-nutrition" id="picker-quick-nutrition">
+        <span>热量 <strong id="pq-cal">0</strong> kcal</span>
+        <span>蛋白 <strong id="pq-protein">0</strong> g</span>
+        <span>碳水 <strong id="pq-carbs">0</strong> g</span>
+        <span>脂肪 <strong id="pq-fat">0</strong> g</span>
+        <span>纤维 <strong id="pq-fiber">0</strong> g</span>
+        <span>钠 <strong id="pq-sodium">0</strong> mg</span>
+        <span>饱和 <strong id="pq-satfat">0</strong> g</span>
+        <span>糖 <strong id="pq-sugar">0</strong> g</span>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" id="btn-clear-meal">清除此餐</button>
+      <button class="btn btn-primary hidden" id="btn-quick-confirm">确认此组合</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 菜品编辑弹窗 ===== -->
+<div class="modal-overlay hidden" id="modal-dish-form">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="dish-form-title">添加菜品</h3>
+      <button class="modal-close" id="btn-close-dish-form">&times;</button>
+    </div>
+    <form id="dish-form" autocomplete="off">
+      <input type="hidden" id="dish-id">
+      <div class="form-group">
+        <label>菜品名称 <span class="required">*</span></label>
+        <input type="text" id="dish-name" required>
+      </div>
+      <div class="form-group">
+        <label>分类</label>
+        <select id="dish-category">
+          <option value="家常菜">家常菜</option><option value="粤菜">粤菜</option>
+          <option value="川湘辣菜">川湘辣菜</option><option value="汤类">汤类</option>
+          <option value="主食">主食</option><option value="早餐">早餐</option>
+          <option value="凉菜">凉菜</option><option value="其他">其他</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>烹饪方式</label>
+        <select id="dish-cooking-method"></select>
+      </div>
+      <div class="form-group">
+        <label>食材清单（每项一行，格式：食材名 克数）</label>
+        <textarea id="dish-ingredients" rows="5" placeholder="鸡胸肉 200
+青椒 100
+食用油 10
+盐 3"></textarea>
+      </div>
+      <div class="form-group">
+        <label>或直接填写营养数据（会覆盖自动计算）</label>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>热量 (kcal)</label>
+          <input type="number" id="dish-calories" min="0" value="0">
+        </div>
+        <div class="form-group">
+          <label>蛋白质 (g)</label>
+          <input type="number" id="dish-protein" min="0" step="0.1" value="0">
+        </div>
+        <div class="form-group">
+          <label>碳水 (g)</label>
+          <input type="number" id="dish-carbs" min="0" step="0.1" value="0">
+        </div>
+        <div class="form-group">
+          <label>脂肪 (g)</label>
+          <input type="number" id="dish-fat" min="0" step="0.1" value="0">
+        </div>
+        <div class="form-group">
+          <label>钠 (mg)</label>
+          <input type="number" id="dish-sodium" min="0" value="0">
+        </div>
+        <div class="form-group">
+          <label>膳食纤维 (g)</label>
+          <input type="number" id="dish-fiber" min="0" step="0.1" value="0">
+        </div>
+        <div class="form-group">
+          <label>饱和脂肪 (g)</label>
+          <input type="number" id="dish-satfat" min="0" step="0.1" value="0">
+        </div>
+        <div class="form-group">
+          <label>糖 (g)</label>
+          <input type="number" id="dish-sugar" min="0" step="0.1" value="0">
+        </div>
+      </div>
+      <div class="form-actions">
+        <button type="button" class="btn btn-outline" id="btn-cancel-dish">取消</button>
+        <button type="submit" class="btn btn-primary">保存</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ===== 食材编辑弹窗 ===== -->
+<div class="modal-overlay hidden" id="modal-ingredient-form">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="ingredient-form-title">添加食材</h3>
+      <button class="modal-close" id="btn-close-ingredient-form">&times;</button>
+    </div>
+    <form id="ingredient-form" autocomplete="off">
+      <input type="hidden" id="ingredient-id">
+      <div class="form-group">
+        <label>食材名称 <span class="required">*</span></label>
+        <input type="text" id="ingredient-name" required>
+      </div>
+      <div class="form-group">
+        <label>分类</label>
+        <select id="ingredient-category">
+          <option value="蔬菜">蔬菜</option><option value="肉类">肉类</option>
+          <option value="海鲜">海鲜</option><option value="豆制品">豆制品</option>
+          <option value="主食">主食</option><option value="蛋奶">蛋奶</option>
+          <option value="调味品">调味品</option><option value="干货">干货</option>
+          <option value="水果">水果</option><option value="自定义">自定义</option>
+        </select>
+      </div>
+      <fieldset>
+        <legend>营养数据（每100g）</legend>
+        <div class="form-row">
+          <div class="form-group">
+            <label>热量 (kcal)</label>
+            <input type="number" id="ingredient-calories" min="0" step="0.1" value="0">
+          </div>
+          <div class="form-group">
+            <label>蛋白质 (g)</label>
+            <input type="number" id="ingredient-protein" min="0" step="0.1" value="0">
+          </div>
+          <div class="form-group">
+            <label>碳水 (g)</label>
+            <input type="number" id="ingredient-carbs" min="0" step="0.1" value="0">
+          </div>
+          <div class="form-group">
+            <label>脂肪 (g)</label>
+            <input type="number" id="ingredient-fat" min="0" step="0.1" value="0">
+          </div>
+          <div class="form-group">
+            <label>钠 (mg)</label>
+            <input type="number" id="ingredient-sodium" min="0" value="0">
+          </div>
+          <div class="form-group">
+            <label>膳食纤维 (g)</label>
+            <input type="number" id="ingredient-fiber" min="0" step="0.1" value="0">
+          </div>
+          <div class="form-group">
+            <label>饱和脂肪 (g)</label>
+            <input type="number" id="ingredient-satfat" min="0" step="0.1" value="0">
+          </div>
+          <div class="form-group">
+            <label>糖 (g)</label>
+            <input type="number" id="ingredient-sugar" min="0" step="0.1" value="0">
+          </div>
+        </div>
+      </fieldset>
+      <div class="form-actions">
+        <button type="button" class="btn btn-outline" id="btn-cancel-ingredient">取消</button>
+        <button type="submit" class="btn btn-primary">保存</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ===== 健康警告弹窗 ===== -->
+<div class="modal-overlay hidden" id="modal-health-warning">
+  <div class="modal modal-warning">
+    <div class="modal-header">
+      <h3>⚠️ 健康提醒</h3>
+      <button class="modal-close" id="btn-close-health-warning">&times;</button>
+    </div>
+    <div class="modal-body" id="health-warning-body"></div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" id="btn-cancel-health">取消</button>
+      <button class="btn btn-primary" id="btn-confirm-health">仍然保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 运动设置弹窗 ===== -->
+<div class="modal-overlay hidden" id="modal-exercise">
+  <div class="modal modal-exercise">
+    <div class="modal-header">
+      <h3 id="exercise-picker-title">设置运动</h3>
+      <button class="modal-close" id="btn-close-exercise">&times;</button>
+    </div>
+    <div class="exercise-preset-list" id="exercise-preset-list"></div>
+    <div class="exercise-custom-wrapper hidden" id="exercise-custom-wrapper">
+      <label>自定义消耗 (kcal)：</label>
+      <input type="number" id="exercise-custom-kcal" min="0" max="5000" value="300" step="10">
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" id="btn-clear-exercise">设为休息</button>
+    </div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
