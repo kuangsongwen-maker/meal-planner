@@ -715,3 +715,46 @@ fieldset legend { font-size: 13px; font-weight: 500; color: var(--text-secondary
   .btn { padding: 6px 12px; font-size: 12px; }
   .analysis-cards { grid-template-columns: 1fr; }
 }
+
+/* ===== 登录遮罩 ===== */
+.login-overlay {
+  position: fixed; inset: 0; z-index: 10000;
+  background: linear-gradient(135deg, #e8f5ee 0%, #d4e8dc 50%, #c5ddd0 100%);
+  display: none; align-items: center; justify-content: center; flex-direction: column; gap: 16px;
+}
+.login-overlay.active { display: flex; }
+.login-card {
+  background: #fff; border-radius: 14px; padding: 32px 28px;
+  width: 380px; max-width: 92vw;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+}
+.login-header { text-align: center; margin-bottom: 20px; }
+.login-header h1 { font-size: 28px; color: var(--primary); margin-bottom: 4px; }
+.login-header h2 { font-size: 22px; color: var(--text); }
+.login-subtitle { color: var(--text-secondary); font-size: 13px; }
+.login-card .form-group { margin-bottom: 14px; }
+.login-card .form-group label { display: block; font-weight: 600; margin-bottom: 4px; font-size: 13px; color: var(--text-secondary); }
+.login-card .form-group input,
+.login-card .form-group select {
+  width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px;
+  font-size: 15px; background: #fafbfc; transition: border-color 0.2s;
+}
+.login-card .form-group input:focus,
+.login-card .form-group select:focus { outline: none; border-color: var(--primary); background: #fff; }
+.login-error {
+  background: #fff0f0; color: var(--danger); padding: 8px 12px; border-radius: 6px;
+  font-size: 13px; margin-bottom: 12px;
+}
+.login-footer { text-align: center; margin-top: 16px; }
+.btn-link { background: none; border: none; color: var(--primary); cursor: pointer; font-size: 14px; text-decoration: underline; }
+.btn-link:hover { color: #3a7055; }
+.btn-block { width: 100%; padding: 12px; font-size: 16px; }
+
+/* 侧边栏退出按钮 */
+.sidebar-footer { padding: 10px 12px; border-top: 1px solid var(--border); margin-top: auto; }
+.btn-logout {
+  width: 100%; padding: 8px; background: none; border: 1px solid var(--border);
+  border-radius: 6px; color: var(--text-secondary); cursor: pointer; font-size: 12px;
+  transition: all 0.15s;
+}
+.btn-logout:hover { background: #fff0f0; color: var(--danger); border-color: var(--danger); }

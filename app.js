@@ -2580,6 +2580,10 @@ function saveUserData(userData) {
   const id = userData.id;
   const existingIdx = users.findIndex(u => u.id === id);
   if (existingIdx >= 0) {
+    // 保留已有密码哈希（编辑用户时不修改密码）
+    if (!userData.passwordHash && users[existingIdx].passwordHash) {
+      userData.passwordHash = users[existingIdx].passwordHash;
+    }
     users[existingIdx] = userData;
   } else {
     users.push(userData);
@@ -2688,16 +2692,162 @@ document.getElementById('ingredient-form').addEventListener('submit', function (
   renderIngredientLibrary(document.getElementById('ingredient-search').value, document.getElementById('ingredient-category-filter').value);
 });
 
+// ============ 密码哈希（Web Crypto SHA-256）============
+
+async function hashPassword(password) {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(password);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+// ============ 登录 / 注册 / 退出 ============
+
+function showLoginOverlay() {
+  document.getElementById('login-overlay').classList.add('active');
+  document.getElementById('login-error').classList.add('hidden');
+  document.getElementById('login-password').value = '';
+  // 填充用户列表
+  const sel = document.getElementById('login-user-select');
+  sel.innerHTML = '<option value="">-- 请选择 --</option>';
+  for (const u of users) {
+    sel.innerHTML += `<option value="${u.id}">${u.name}</option>`;
+  }
+  // 没有用户 → 直接显示注册
+  if (users.length === 0) {
+    document.getElementById('login-form-wrap').parentElement.classList.add('hidden');
+    document.getElementById('register-card').classList.remove('hidden');
+  } else {
+    document.getElementById('login-form-wrap').parentElement.classList.remove('hidden');
+    document.getElementById('register-card').classList.add('hidden');
+  }
+}
+
+function hideLoginOverlay() {
+  document.getElementById('login-overlay').classList.remove('active');
+}
+
+// 登录
+document.getElementById('btn-login').addEventListener('click', async function () {
+  const userId = document.getElementById('login-user-select').value;
+  const password = document.getElementById('login-password').value;
+  const errEl = document.getElementById('login-error');
+
+  if (!userId) { errEl.textContent = '请选择用户'; errEl.classList.remove('hidden'); return; }
+
+  const user = users.find(u => u.id === userId);
+  if (!user) { errEl.textContent = '用户不存在'; errEl.classList.remove('hidden'); return; }
+
+  const inputHash = await hashPassword(password);
+  // 没有密码哈希的旧用户，空密码可登录
+  const storedHash = user.passwordHash || '';
+  if (inputHash !== storedHash) {
+    errEl.textContent = '密码错误';
+    errEl.classList.remove('hidden');
+    return;
+  }
+
+  currentUser = user;
+  sessionStorage.setItem('mealplanner_loggedIn', userId);
+  hideLoginOverlay();
+  switchNav('user');
+});
+
+// 回车登录
+document.getElementById('login-password').addEventListener('keydown', function (e) {
+  if (e.key === 'Enter') document.getElementById('btn-login').click();
+});
+
+// 回车注册
+document.getElementById('register-password2').addEventListener('keydown', function (e) {
+  if (e.key === 'Enter') document.getElementById('btn-register').click();
+});
+
+// 注册
+document.getElementById('btn-register').addEventListener('click', async function () {
+  const name = document.getElementById('register-name').value.trim();
+  const pwd = document.getElementById('register-password').value;
+  const pwd2 = document.getElementById('register-password2').value;
+  const errEl = document.getElementById('register-error');
+
+  if (!name) { errEl.textContent = '请输入姓名'; errEl.classList.remove('hidden'); return; }
+  if (pwd.length < 4) { errEl.textContent = '密码至少4位'; errEl.classList.remove('hidden'); return; }
+  if (pwd !== pwd2) { errEl.textContent = '两次密码不一致'; errEl.classList.remove('hidden'); return; }
+
+  const passwordHash = await hashPassword(pwd);
+  const userData = {
+    id: generateId('u_'),
+    name: name,
+    age: 30, gender: 'male', height: 170, weight: 65,
+    bodyFat: null,
+    dailyPAL: '1.6', exerciseKcal: '120',
+    exerciseMode: 'rough',
+    targetWeight: 60, targetBodyFat: null,
+    targetHabit: 'maintain', targetDate: null,
+    passwordHash: passwordHash
+  };
+  users.push(userData);
+  currentUser = userData;
+  saveData();
+  sessionStorage.setItem('mealplanner_loggedIn', userData.id);
+  hideLoginOverlay();
+  switchNav('user');
+});
+
+// 切换登录/注册
+document.getElementById('btn-show-register').addEventListener('click', function () {
+  document.getElementById('login-form-wrap').parentElement.classList.add('hidden');
+  document.getElementById('register-card').classList.remove('hidden');
+  document.getElementById('register-name').value = '';
+  document.getElementById('register-password').value = '';
+  document.getElementById('register-password2').value = '';
+  document.getElementById('register-error').classList.add('hidden');
+});
+
+document.getElementById('btn-show-login').addEventListener('click', function () {
+  document.getElementById('login-form-wrap').parentElement.classList.remove('hidden');
+  document.getElementById('register-card').classList.add('hidden');
+  showLoginOverlay();
+});
+
+// 退出登录
+document.getElementById('btn-logout').addEventListener('click', function () {
+  sessionStorage.removeItem('mealplanner_loggedIn');
+  currentUser = null;
+  showLoginOverlay();
+});
+
 // ============ 初始化 ============
 
 function init() {
   loadData();
+
+  // 检查登录状态
+  const loggedInId = sessionStorage.getItem('mealplanner_loggedIn');
+  if (loggedInId) {
+    const u = users.find(u => u.id === loggedInId);
+    if (u) {
+      currentUser = u;
+    } else {
+      sessionStorage.removeItem('mealplanner_loggedIn');
+    }
+  }
+
   // 初始化热量单位按钮状态
   document.querySelectorAll('.unit-btn').forEach(b => b.classList.toggle('active', b.dataset.unit === calorieUnit));
-  // Set current user to first user if none selected
-  if (!currentUser && users.length > 0) currentUser = users[0];
-  // Show user panel first
-  switchNav('user');
+
+  if (currentUser) {
+    // 已登录：隐藏遮罩，正常初始化
+    hideLoginOverlay();
+    switchNav('user');
+  } else if (users.length > 0) {
+    // 有用户但未登录：显示登录
+    showLoginOverlay();
+  } else {
+    // 无用户：显示注册
+    showLoginOverlay();
+  }
 }
 
 init();
