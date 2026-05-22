@@ -706,6 +706,19 @@ fieldset legend { font-size: 13px; font-weight: 500; color: var(--text-secondary
 .weight-list { display: flex; flex-wrap: wrap; gap: 4px; }
 .weight-chip { background: var(--bg-hover); padding: 2px 8px; border-radius: 10px; font-size: 11px; color: var(--text-secondary); }
 
+.picker-item-selected { background: var(--primary-light); border-left: 3px solid var(--primary); }
+
+/* 餐格内菜品标签 */
+.dish-chip {
+  background: rgba(255,255,255,0.85); padding: 2px 5px; border-radius: 4px;
+  font-size: 11px; display: flex; justify-content: space-between; gap: 4px;
+  margin-bottom: 2px;
+}
+.dish-chip .dish-name { font-weight: 600; }
+.dish-chip .dish-cal { color: var(--text-secondary); font-size: 10px; white-space: nowrap; }
+.dish-chip-actual { background: #fff0e0; }
+.dish-chip-actual .dish-name { font-weight: 400; font-style: italic; }
+
 @media (max-width: 500px) {
   .main-content { padding: 10px; }
   .meal-grid { grid-template-columns: 40px repeat(7, 1fr); }

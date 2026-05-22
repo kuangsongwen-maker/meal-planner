@@ -538,18 +538,20 @@ function calcNutritionFromPlan(plan, dayIndex) {
   let calories = 0, protein = 0, carbs = 0, fat = 0;
   let sodium = 0, fiber = 0, saturatedFat = 0, sugar = 0;
   for (const mealType of MEAL_TYPES) {
-    const dishId = plan.days[dayIndex]?.[mealType];
-    if (!dishId) continue;
-    const dish = getDishById(dishId);
-    if (!dish) continue;
-    calories += dish.calories || 0;
-    protein += dish.protein || 0;
-    carbs += dish.carbs || 0;
-    fat += dish.fat || 0;
-    sodium += dish.sodium || 0;
-    fiber += dish.fiber || 0;
-    saturatedFat += dish.saturatedFat || 0;
-    sugar += dish.sugar || 0;
+    const dishIds = plan.days[dayIndex]?.[mealType];
+    if (!dishIds || !dishIds.length) continue;
+    for (const dishId of dishIds) {
+      const dish = getDishById(dishId);
+      if (!dish) continue;
+      calories += dish.calories || 0;
+      protein += dish.protein || 0;
+      carbs += dish.carbs || 0;
+      fat += dish.fat || 0;
+      sodium += dish.sodium || 0;
+      fiber += dish.fiber || 0;
+      saturatedFat += dish.saturatedFat || 0;
+      sugar += dish.sugar || 0;
+    }
   }
   return {
     calories, protein: Math.round(protein * 10) / 10, carbs: Math.round(carbs * 10) / 10, fat: Math.round(fat * 10) / 10,
@@ -578,21 +580,23 @@ function getDayNutritionByDate(dateStr) {
   let protein = 0, carbs = 0, fat = 0;
   let sodium = 0, fiber = 0, saturatedFat = 0, sugar = 0;
   for (const mealType of MEAL_TYPES) {
-    const dishId = plan.days[diffDays]?.[mealType];
-    if (!dishId) continue;
-    const dish = getDishById(dishId);
-    if (!dish) continue;
-    const cal = dish.calories || 0;
-    if (mealType === 'breakfast') breakfast = cal;
-    else if (mealType === 'lunch') lunch = cal;
-    else dinner = cal;
-    protein += dish.protein || 0;
-    carbs += dish.carbs || 0;
-    fat += dish.fat || 0;
-    sodium += dish.sodium || 0;
-    fiber += dish.fiber || 0;
-    saturatedFat += dish.saturatedFat || 0;
-    sugar += dish.sugar || 0;
+    const dishIds = plan.days[diffDays]?.[mealType];
+    if (!dishIds || !dishIds.length) continue;
+    for (const dishId of dishIds) {
+      const dish = getDishById(dishId);
+      if (!dish) continue;
+      const cal = dish.calories || 0;
+      if (mealType === 'breakfast') breakfast += cal;
+      else if (mealType === 'lunch') lunch += cal;
+      else dinner += cal;
+      protein += dish.protein || 0;
+      carbs += dish.carbs || 0;
+      fat += dish.fat || 0;
+      sodium += dish.sodium || 0;
+      fiber += dish.fiber || 0;
+      saturatedFat += dish.saturatedFat || 0;
+      sugar += dish.sugar || 0;
+    }
   }
   return {
     calories: breakfast + lunch + dinner,
@@ -637,10 +641,12 @@ function calcDayCalories(weekStart, dayIndex) {
   const plan = getMealPlan(weekStart);
   let total = 0;
   for (const mealType of MEAL_TYPES) {
-    const dishId = plan.days[dayIndex]?.[mealType];
-    if (!dishId) continue;
-    const dish = getDishById(dishId);
-    if (dish) total += dish.calories || 0;
+    const dishIds = plan.days[dayIndex]?.[mealType];
+    if (!dishIds || !dishIds.length) continue;
+    for (const dishId of dishIds) {
+      const dish = getDishById(dishId);
+      if (dish) total += dish.calories || 0;
+    }
   }
   return total;
 }
@@ -654,13 +660,15 @@ function getDayCaloriesByDate(dateStr) {
   const plan = getMealPlan(ws);
   let breakfast = 0, lunch = 0, dinner = 0;
   for (const mealType of MEAL_TYPES) {
-    const dishId = plan.days[diffDays]?.[mealType];
-    if (!dishId) continue;
-    const dish = getDishById(dishId);
-    if (!dish) continue;
-    if (mealType === 'breakfast') breakfast = dish.calories;
-    else if (mealType === 'lunch') lunch = dish.calories;
-    else dinner = dish.calories;
+    const dishIds = plan.days[diffDays]?.[mealType];
+    if (!dishIds || !dishIds.length) continue;
+    for (const dishId of dishIds) {
+      const dish = getDishById(dishId);
+      if (!dish) continue;
+      if (mealType === 'breakfast') breakfast += dish.calories;
+      else if (mealType === 'lunch') lunch += dish.calories;
+      else dinner += dish.calories;
+    }
   }
   return { breakfast, lunch, dinner, total: breakfast + lunch + dinner };
 }
@@ -760,6 +768,21 @@ function loadData() {
       }
       mealPlans = data.mealPlans || {};
       actualMeals = data.actualMeals || {};
+      // 迁移旧数据：null→[], 字符串→[字符串]
+      for (const plans of [mealPlans, actualMeals]) {
+        for (const wk of Object.keys(plans)) {
+          const days = plans[wk].days;
+          if (!days) continue;
+          for (let d = 0; d < 7; d++) {
+            if (!days[d]) continue;
+            for (const mt of MEAL_TYPES) {
+              const val = days[d][mt];
+              if (val === null || val === undefined) days[d][mt] = [];
+              else if (!Array.isArray(val)) days[d][mt] = [val];
+            }
+          }
+        }
+      }
       exercisePlans = data.exercisePlans || {};
       customDishes = data.customDishes || [];
       customIngredients = data.customIngredients || [];
@@ -788,7 +811,7 @@ function getMealPlan(weekStart) {
   if (!mealPlans[weekStart]) {
     mealPlans[weekStart] = { days: {} };
     for (let i = 0; i < 7; i++) {
-      mealPlans[weekStart].days[i] = { breakfast: null, lunch: null, dinner: null };
+      mealPlans[weekStart].days[i] = { breakfast: [], lunch: [], dinner: [] };
     }
   }
   return mealPlans[weekStart];
@@ -796,7 +819,18 @@ function getMealPlan(weekStart) {
 
 function setMeal(weekStart, dayIndex, mealType, dishId) {
   const plan = getMealPlan(weekStart);
-  plan.days[dayIndex][mealType] = dishId;
+  const arr = plan.days[dayIndex][mealType];
+  if (!Array.isArray(arr)) {
+    // migrate old single-value slot
+    plan.days[dayIndex][mealType] = arr ? [arr] : [];
+  }
+  const items = plan.days[dayIndex][mealType];
+  const idx = items.indexOf(dishId);
+  if (idx >= 0) {
+    items.splice(idx, 1);  // 已选 → 移除
+  } else {
+    items.push(dishId);    // 未选 → 添加
+  }
   saveData();
 }
 
@@ -805,7 +839,7 @@ function getActualMealPlan(weekStart) {
   if (!actualMeals[weekStart]) {
     actualMeals[weekStart] = { days: {} };
     for (let i = 0; i < 7; i++) {
-      actualMeals[weekStart].days[i] = { breakfast: null, lunch: null, dinner: null };
+      actualMeals[weekStart].days[i] = { breakfast: [], lunch: [], dinner: [] };
     }
   }
   return actualMeals[weekStart];
@@ -813,7 +847,17 @@ function getActualMealPlan(weekStart) {
 
 function setActualMeal(weekStart, dayIndex, mealType, dishId) {
   const plan = getActualMealPlan(weekStart);
-  plan.days[dayIndex][mealType] = dishId;
+  const arr = plan.days[dayIndex][mealType];
+  if (!Array.isArray(arr)) {
+    plan.days[dayIndex][mealType] = arr ? [arr] : [];
+  }
+  const items = plan.days[dayIndex][mealType];
+  const idx = items.indexOf(dishId);
+  if (idx >= 0) {
+    items.splice(idx, 1);
+  } else {
+    items.push(dishId);
+  }
   saveData();
 }
 
@@ -825,18 +869,20 @@ function aggregateShoppingList(weekStart) {
 
   for (let d = 0; d < 7; d++) {
     for (const mealType of MEAL_TYPES) {
-      const dishId = plan.days[d]?.[mealType];
-      if (!dishId) continue;
-      const dish = getDishById(dishId);
-      if (!dish || !dish.ingredients) continue;
-      for (const item of dish.ingredients) {
-        const ing = getIngredientById(item.id);
-        const ingName = ing ? ing.name : item.id;
-        const key = `${item.id}_${ingName}`;
-        if (!ingredientsMap[key]) {
-          ingredientsMap[key] = { ingredientId: item.id, name: ingName, totalG: 0, unit: 'g' };
+      const dishIds = plan.days[d]?.[mealType];
+      if (!dishIds || !dishIds.length) continue;
+      for (const dishId of dishIds) {
+        const dish = getDishById(dishId);
+        if (!dish || !dish.ingredients) continue;
+        for (const item of dish.ingredients) {
+          const ing = getIngredientById(item.id);
+          const ingName = ing ? ing.name : item.id;
+          const key = `${item.id}_${ingName}`;
+          if (!ingredientsMap[key]) {
+            ingredientsMap[key] = { ingredientId: item.id, name: ingName, totalG: 0, unit: 'g' };
+          }
+          ingredientsMap[key].totalG += (item.g || 0);
         }
-        ingredientsMap[key].totalG += (item.g || 0);
       }
     }
   }
@@ -1033,20 +1079,27 @@ function renderMealPlanner() {
   for (let m = 0; m < 3; m++) {
     html += `<div class="meal-cell meal-label ${MEAL_TYPES[m]}">${MEAL_LABELS[m]}</div>`;
     for (let d = 0; d < 7; d++) {
-      const dishId = plan.days[d]?.[MEAL_TYPES[m]];
-      const dish = dishId ? getDishById(dishId) : null;
-      const actualDishId = actualPlan.days[d]?.[MEAL_TYPES[m]];
-      const actualDish = actualDishId ? getDishById(actualDishId) : null;
+      const dishIds = plan.days[d]?.[MEAL_TYPES[m]];
+      const dishes = (Array.isArray(dishIds) ? dishIds : (dishIds ? [dishIds] : []))
+        .map(id => getDishById(id)).filter(Boolean);
+      const actualDishIds = actualPlan.days[d]?.[MEAL_TYPES[m]];
+      const actualDishes = (Array.isArray(actualDishIds) ? actualDishIds : (actualDishIds ? [actualDishIds] : []))
+        .map(id => getDishById(id)).filter(Boolean);
 
       html += `<div class="meal-cell meal-slot" data-day="${d}" data-meal="${MEAL_TYPES[m]}">`;
-      if (dish) {
-        html += `<span class="dish-name">${dish.name}</span><span class="dish-cal">${fmtCal(dish.calories)}</span>`;
+      if (dishes.length > 0) {
+        for (const dish of dishes) {
+          html += `<div class="dish-chip"><span class="dish-name">${dish.name}</span><span class="dish-cal">${fmtCal(dish.calories)}</span></div>`;
+        }
       } else {
         html += '<span class="dish-placeholder">+ 添加</span>';
       }
-      // 实际摄入按钮 + 显示
-      if (actualDish && actualDish.id !== (dish ? dish.id : null)) {
-        html += `<span class="dish-actual-name">实: ${actualDish.name}</span>`;
+      // 实际摄入显示
+      for (const aDish of actualDishes) {
+        const inPlan = dishes.some(d => d.id === aDish.id);
+        if (!inPlan) {
+          html += `<div class="dish-chip dish-chip-actual"><span class="dish-name">实: ${aDish.name}</span><span class="dish-cal">${fmtCal(aDish.calories)}</span></div>`;
+        }
       }
       html += `<button class="btn-actual-meal" data-day="${d}" data-meal="${MEAL_TYPES[m]}" title="记录实际摄入">📝</button>`;
       html += '</div>';
@@ -1786,7 +1839,10 @@ function addIngredientToCustomizer(ingId) {
 
 const ALL_CATEGORIES = ['全部', '家常菜', '粤菜', '川湘辣菜', '汤类', '主食', '早餐', '凉菜', '其他'];
 
+let pickerDayIndex, pickerMealType, pickerIsActual;
+
 function openDishPicker(dayIndex, mealType, isActual = false) {
+  pickerDayIndex = dayIndex; pickerMealType = mealType; pickerIsActual = isActual;
   const mealLabel = `${DAY_LABELS[dayIndex]} ${MEAL_LABELS[MEAL_TYPES.indexOf(mealType)]}`;
   const mode = isActual ? '【实际摄入】' : '';
   document.getElementById('picker-title').textContent = `选择菜品 ${mode}- ${mealLabel}`;
@@ -1812,13 +1868,23 @@ function openDishPicker(dayIndex, mealType, isActual = false) {
   updatePickerQuickNutrition();
 
   pickerCallback = (dishId) => {
-    if (isActual) {
-      setActualMeal(currentWeekStart, dayIndex, mealType, dishId || null);
+    if (dishId) {
+      if (isActual) {
+        setActualMeal(currentWeekStart, dayIndex, mealType, dishId);
+      } else {
+        setMeal(currentWeekStart, dayIndex, mealType, dishId);
+      }
+      // 不关闭，允许连续多选；刷新列表更新选中状态
+      renderMealPlanner();
+      renderPickerList(document.getElementById('picker-search').value, currentPickerCategory);
     } else {
-      setMeal(currentWeekStart, dayIndex, mealType, dishId || null);
+      // 清空该餐所有菜品
+      const plan = isActual ? getActualMealPlan(currentWeekStart) : getMealPlan(currentWeekStart);
+      plan.days[dayIndex][mealType] = [];
+      saveData();
+      renderMealPlanner();
+      closeDishPicker();
     }
-    renderMealPlanner();
-    closeDishPicker();
   };
 }
 
@@ -2055,9 +2121,14 @@ function renderPickerList(filterText, filterCategory) {
     const q = filterText.toLowerCase();
     dishes = dishes.filter(d => d.name.toLowerCase().includes(q));
   }
+  // 获取当前槽位已选菜品
+  const plan = pickerIsActual ? getActualMealPlan(currentWeekStart) : getMealPlan(currentWeekStart);
+  const selected = (pickerDayIndex !== undefined) ? (plan.days[pickerDayIndex]?.[pickerMealType] || []) : [];
+  const selectedSet = new Set(Array.isArray(selected) ? selected : (selected ? [selected] : []));
+
   document.getElementById('picker-list').innerHTML = dishes.map(d => `
-    <div class="picker-item" data-pick-dish-id="${d.id}">
-      <span class="picker-item-name">${d.name} <small style="color:var(--text-secondary)">${d.category}</small></span>
+    <div class="picker-item${selectedSet.has(d.id) ? ' picker-item-selected' : ''}" data-pick-dish-id="${d.id}">
+      <span class="picker-item-name">${selectedSet.has(d.id) ? '✓ ' : ''}${d.name} <small style="color:var(--text-secondary)">${d.category}</small></span>
       <span class="picker-item-nutrition">${fmtCal(d.calories)} | 蛋白${d.protein}g | 碳水${d.carbs}g | 脂肪${d.fat}g</span>
     </div>
   `).join('');
@@ -2297,7 +2368,12 @@ document.addEventListener('click', function (e) {
         for (const dd of [0, 1, 2, 3, 4, 5, 6]) {
           if (!mealPlans[wk].days[dd]) continue;
           for (const mt of MEAL_TYPES) {
-            if (mealPlans[wk].days[dd][mt] === btn.dataset.dishId) mealPlans[wk].days[dd][mt] = null;
+            const slot = mealPlans[wk].days[dd][mt];
+            if (Array.isArray(slot)) {
+              mealPlans[wk].days[dd][mt] = slot.filter(id => id !== btn.dataset.dishId);
+            } else if (slot === btn.dataset.dishId) {
+              mealPlans[wk].days[dd][mt] = [];
+            }
           }
         }
       }
