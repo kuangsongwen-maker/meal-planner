@@ -2974,10 +2974,28 @@ document.getElementById('btn-logout').addEventListener('click', function () {
   showLoginOverlay();
 });
 
+// ============ 页脚 ============
+function ensureFooter() {
+  let footer = document.querySelector('.app-footer');
+  if (!footer) {
+    // 用 JS 动态创建，避免 HTML 缓存问题
+    const main = document.querySelector('.main-content');
+    if (main) {
+      footer = document.createElement('div');
+      footer.className = 'app-footer';
+      footer.textContent = 'Powered by Andrew';
+      main.appendChild(footer);
+    }
+  }
+}
+
 // ============ 初始化 ============
 
 function init() {
   loadData();
+
+  // 添加页脚
+  ensureFooter();
 
   // 检查登录状态
   const loggedInId = sessionStorage.getItem('mealplanner_loggedIn');
