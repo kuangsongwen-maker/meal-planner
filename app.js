@@ -2334,11 +2334,15 @@ document.addEventListener('click', function (e) {
       if (oldPlan) {
         mealPlans[currentWeekStart] = JSON.parse(JSON.stringify(oldPlan));
       }
+    }
+    // 独立判断：复制运动计划（不与菜单计划绑定）
+    if (oldWeek !== currentWeekStart && !exercisePlans[currentWeekStart]) {
       const oldExPlan = exercisePlans[oldWeek];
       if (oldExPlan) {
         exercisePlans[currentWeekStart] = JSON.parse(JSON.stringify(oldExPlan));
       }
     }
+    saveData();
     renderMealPlanner(); return;
   }
 
