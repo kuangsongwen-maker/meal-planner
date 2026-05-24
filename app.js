@@ -2335,11 +2335,18 @@ document.addEventListener('click', function (e) {
         mealPlans[currentWeekStart] = JSON.parse(JSON.stringify(oldPlan));
       }
     }
-    // 独立判断：复制运动计划（不与菜单计划绑定）
-    if (oldWeek !== currentWeekStart && !exercisePlans[currentWeekStart]) {
-      const oldExPlan = exercisePlans[oldWeek];
-      if (oldExPlan) {
-        exercisePlans[currentWeekStart] = JSON.parse(JSON.stringify(oldExPlan));
+    // 独立判断：运动计划复制 — 旧周有实际数据且新周无数据时才复制
+    if (oldWeek !== currentWeekStart) {
+      const oldEx = exercisePlans[oldWeek];
+      if (oldEx && oldEx.days) {
+        const oldHasData = Object.values(oldEx.days).some(arr => Array.isArray(arr) && arr.length > 0);
+        if (oldHasData) {
+          const newEx = exercisePlans[currentWeekStart];
+          const newHasData = newEx && newEx.days && Object.values(newEx.days).some(arr => Array.isArray(arr) && arr.length > 0);
+          if (!newHasData) {
+            exercisePlans[currentWeekStart] = JSON.parse(JSON.stringify(oldEx));
+          }
+        }
       }
     }
     saveData();
