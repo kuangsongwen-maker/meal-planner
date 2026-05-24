@@ -301,22 +301,34 @@ function calcDayTDEE(user, dayExerciseKcal) {
 function getDayExerciseKcal(weekStart, dayIndex) {
   const plan = exercisePlans[weekStart];
   if (!plan || !plan.days || !plan.days[dayIndex]) return 0;
-  return plan.days[dayIndex].calories || 0;
+  const items = Array.isArray(plan.days[dayIndex]) ? plan.days[dayIndex] : [plan.days[dayIndex]];
+  return items.reduce((sum, ex) => sum + (ex.calories || 0), 0);
 }
 
-// 获取某天的运动预设信息
+// 获取某天的运动预设信息（返回数组）
 function getDayExerciseInfo(weekStart, dayIndex) {
   const plan = exercisePlans[weekStart];
-  if (!plan || !plan.days || !plan.days[dayIndex]) return null;
-  return plan.days[dayIndex];
+  if (!plan || !plan.days || !plan.days[dayIndex]) return [];
+  const items = plan.days[dayIndex];
+  return Array.isArray(items) ? items : (items ? [items] : []);
 }
 
-// 设置某天的运动
+// 设置某天的运动（toggle：已有则移除，否则添加）
 function setDayExercise(weekStart, dayIndex, presetId, calories) {
   if (!exercisePlans[weekStart]) {
     exercisePlans[weekStart] = { days: {} };
   }
-  exercisePlans[weekStart].days[dayIndex] = { preset: presetId, calories: calories || 0 };
+  const day = exercisePlans[weekStart].days;
+  if (!Array.isArray(day[dayIndex])) {
+    day[dayIndex] = day[dayIndex] ? [day[dayIndex]] : [];
+  }
+  const arr = day[dayIndex];
+  const idx = arr.findIndex(e => e.preset === presetId);
+  if (idx >= 0) {
+    arr.splice(idx, 1);  // 已选 → 移除
+  } else {
+    arr.push({ preset: presetId, calories: calories || 0 });  // 未选 → 添加
+  }
   saveData();
 }
 
@@ -790,6 +802,17 @@ function loadData() {
         }
       }
       exercisePlans = data.exercisePlans || {};
+      // 迁移旧版 exercisePlans 格式（单对象 → 数组）
+      for (const wk of Object.keys(exercisePlans)) {
+        const days = exercisePlans[wk].days;
+        if (!days) continue;
+        for (let d = 0; d < 7; d++) {
+          if (!days[d]) continue;
+          if (!Array.isArray(days[d])) {
+            days[d] = days[d] ? [days[d]] : [];
+          }
+        }
+      }
       customDishes = data.customDishes || [];
       customIngredients = data.customIngredients || [];
       shoppingChecked = data.shoppingChecked || {};
@@ -981,7 +1004,7 @@ function renderUsers() {
       <div class="user-stats-grid">
         <div class="user-stat-card"><div class="stat-value">${fmtKcal(bmr)}</div><div class="stat-label">基础代谢 BMR (${calUnit()}/天) · ${bmrMethod}</div></div>
         <div class="user-stat-card"><div class="stat-value">${fmtKcal(tdee)}</div><div class="stat-label">每日消耗 TDEE (${calUnit()}/天)</div></div>
-        <div class="user-stat-card"><div class="stat-value">${fmtKcal(target)}</div><div class="stat-label">目标摄入 (${calUnit()}/天)</div></div>
+        <div class="user-stat-card"><div class="stat-value">${fmtKcal(target)}</div><div class="stat-label">目标摄入 (${calUnit()}/天)<br><small style="font-weight:400;">= TDEE − 计划缺口，减重应吃这么多</small></div></div>
         <div class="user-stat-card"><div class="stat-value">${currentUser.targetWeight} kg</div><div class="stat-label">目标体重${currentUser.targetBodyFat ? ' · 体脂 ' + currentUser.targetBodyFat + '%' : ''}</div></div>
       </div>
       ${currentUser.bodyFat ? `<div class="user-stats-grid" style="margin-top:8px;">
@@ -1004,8 +1027,8 @@ function renderUsers() {
           `}
           <div class="breakdown-step result-step"><span>= TDEE 每日总消耗</span><strong>${fmtCal(tdee)}</strong><small>日常消耗 + 运动消耗</small></div>
           ${target !== tdee ? `
-          <div class="breakdown-step ${dailyDeficit > 0 ? 'deficit-step' : 'surplus-step'}"><span>${dailyDeficit > 0 ? '− 热量缺口' : '+ 热量盈余'}</span><strong>${fmtCal(Math.abs(dailyDeficit))}</strong><small>${currentUser.targetDate ? '由目标日期倒推' : '默认 ±' + fmtCal(500) + '/天'}</small></div>
-          <div class="breakdown-step result-step"><span>= 目标摄入</span><strong>${fmtCal(target)}</strong><small>${atFloor ? '⚠️ 已触达基础代谢下限，无法再低' : '每日应摄入热量'}</small></div>
+          <div class="breakdown-step ${dailyDeficit > 0 ? 'deficit-step' : 'surplus-step'}"><span>${dailyDeficit > 0 ? '− 计划热量缺口' : '+ 计划热量盈余'}</span><strong>${fmtCal(Math.abs(dailyDeficit))}</strong><small>${currentUser.targetDate ? '由目标日期×体重目标倒推' : '默认 ±' + fmtCal(500) + '/天'}</small></div>
+          <div class="breakdown-step result-step"><span>= 目标摄入</span><strong>${fmtCal(target)}</strong><small>${atFloor ? '⚠️ 已触达基础代谢下限，无法再低' : '这是你每天该吃的热量'}</small></div>
           ` : `
           <div class="breakdown-step result-step"><span>= 目标摄入</span><strong>${fmtCal(target)}</strong><small>维持当前体重</small></div>
           `}
@@ -1137,11 +1160,22 @@ function renderMealPlanner() {
   if (isFineMode) {
     html += '<div class="meal-cell meal-label ex-label">运动</div>';
     for (let d = 0; d < 7; d++) {
-      const info = getDayExerciseInfo(ws, d);
-      const preset = info ? EXERCISE_PRESETS.find(p => p.id === info.preset) : null;
+      const infoArr = getDayExerciseInfo(ws, d);
       const exKcal = getDayExerciseKcal(ws, d);
-      const label = preset && preset.id !== 'rest' ? preset.name : (exKcal > 0 ? `${fmtCal(exKcal)}` : '休息');
-      html += `<div class="meal-cell meal-exercise-cell${exKcal > 0 ? ' has-exercise' : ''}" data-ex-day="${d}" title="点击设置运动">${label}${exKcal > 0 ? `<span class="ex-kcal">+${fmtKcal(exKcal)}</span>` : ''}</div>`;
+      let cellContent = '';
+      if (infoArr.length > 0) {
+        for (const item of infoArr) {
+          const preset = EXERCISE_PRESETS.find(p => p.id === item.preset);
+          if (preset && preset.id !== 'custom_kcal') {
+            cellContent += `<span class="ex-chip">${preset.name}</span>`;
+          } else if (item.preset === 'custom_kcal') {
+            cellContent += `<span class="ex-chip">自定义 ${fmtCal(item.calories)}</span>`;
+          }
+        }
+      } else {
+        cellContent = '休息';
+      }
+      html += `<div class="meal-cell meal-exercise-cell${exKcal > 0 ? ' has-exercise' : ''}" data-ex-day="${d}" title="点击设置运动">${cellContent}${exKcal > 0 ? `<span class="ex-kcal">+${fmtKcal(exKcal)}</span>` : ''}</div>`;
     }
 
     // --- 精细模式：TDEE 行 ---
@@ -1158,8 +1192,17 @@ function renderMealPlanner() {
     html += `<div class="meal-cell meal-total-cell">${cal > 0 ? fmtCal(cal, false) : '-'}</div>`;
   }
 
+  // --- 每日目标行 ---
+  if (currentUser && dayTargets.length > 0) {
+    html += '<div class="meal-cell meal-label target-label">目标</div>';
+    for (let d = 0; d < 7; d++) {
+      html += `<div class="meal-cell meal-target-cell">${fmtCal(dayTargets[d], false)}</div>`;
+    }
+  }
+
   // --- 热量缺口行 ---
   if (currentUser && dayTargets.length > 0) {
+    const tgtDeficit = (currentUser && currentUser.targetHabit !== 'maintain') ? Math.round(calcTDEE(currentUser) - calcTargetCalories(currentUser)) : 0;
     html += '<div class="meal-cell meal-label deficit-label">缺口</div>';
     for (let d = 0; d < 7; d++) {
       const cal = effectiveNutrition[d].calories;
@@ -1269,7 +1312,7 @@ function renderWeekSummary(dayTotals, targetCal, dayNutrition, macroTargets) {
     const sign = weeklyDeficit >= 0 ? '-' : '+';
     const estWeightChange = (Math.abs(weeklyDeficit) / 7700).toFixed(1);
     html += `<div class="summary-card ${cls}"><div class="summary-value">${sign}${fmtKcal(Math.abs(weeklyDeficit))}</div><div class="summary-label">周热量${weeklyDeficit >= 0 ? '缺口' : '盈余'} (${calUnit()})</div></div>`;
-    html += `<div class="summary-card"><div class="summary-value">${fmtKcal(targetCal)}</div><div class="summary-label">每日目标 (${calUnit()})</div></div>`;
+    html += `<div class="summary-card"><div class="summary-value">${fmtKcal(targetCal)}</div><div class="summary-label">每日目标 (${calUnit()})<br><small style="font-weight:400;">减重应吃≤此数值</small></div></div>`;
     if (weekTotal > 0) {
       html += `<div class="summary-card"><div class="summary-value">~${estWeightChange} kg</div><div class="summary-label">估算体重变化</div></div>`;
     }
@@ -1922,20 +1965,18 @@ function renderExercisePresets() {
   const list = document.getElementById('exercise-preset-list');
   const ws = currentWeekStart;
   const di = exercisePickerDayIndex;
-  const currentInfo = di !== null ? getDayExerciseInfo(ws, di) : null;
-  const currentPreset = currentInfo ? currentInfo.preset : null;
+  const currentExercises = di !== null ? getDayExerciseInfo(ws, di) : [];
+  const selectedSet = new Set(currentExercises.map(e => e.preset));
 
   list.innerHTML = EXERCISE_PRESETS.map(p => {
-    const isActive = currentPreset === p.id;
+    const isActive = selectedSet.has(p.id);
     let kcal = 0;
     if (p.met !== null && p.met > 0 && currentUser) {
       kcal = Math.round(p.met * currentUser.weight * p.duration);
-    } else if (p.id === 'custom_kcal' && currentInfo) {
-      kcal = currentInfo.calories || 0;
     }
     const kcalText = p.id === 'rest' ? '' : (p.id === 'custom_kcal' ? ' (自定义)' : ` ≈${fmtKcal(kcal)} ${calUnit()}`);
     return `<div class="exercise-preset-item ${isActive ? 'active' : ''}" data-ex-preset="${p.id}">
-      <span class="ex-preset-name">${p.name}</span>
+      <span class="ex-preset-name">${isActive ? '✓ ' : ''}${p.name}</span>
       <span class="ex-preset-kcal">${kcalText}</span>
     </div>`;
   }).join('');
@@ -1947,8 +1988,11 @@ function selectExercisePreset(presetId) {
   const ws = currentWeekStart;
 
   if (presetId === 'rest') {
-    setDayExercise(ws, di, 'rest', 0);
-    closeExercisePicker();
+    // 清空所有运动
+    if (!exercisePlans[ws]) exercisePlans[ws] = { days: {} };
+    exercisePlans[ws].days[di] = [];
+    saveData();
+    renderExercisePresets();
     renderMealPlanner();
     return;
   }
@@ -1964,7 +2008,8 @@ function selectExercisePreset(presetId) {
     const kcal = Math.round(preset.met * currentUser.weight * preset.duration);
     setDayExercise(ws, di, presetId, kcal);
   }
-  closeExercisePicker();
+  // 不关闭，允许连续多选
+  renderExercisePresets();
   renderMealPlanner();
 }
 
@@ -2288,6 +2333,10 @@ document.addEventListener('click', function (e) {
       const oldPlan = mealPlans[oldWeek];
       if (oldPlan) {
         mealPlans[currentWeekStart] = JSON.parse(JSON.stringify(oldPlan));
+      }
+      const oldExPlan = exercisePlans[oldWeek];
+      if (oldExPlan) {
+        exercisePlans[currentWeekStart] = JSON.parse(JSON.stringify(oldExPlan));
       }
     }
     renderMealPlanner(); return;

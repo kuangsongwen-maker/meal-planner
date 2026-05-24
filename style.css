@@ -242,6 +242,8 @@ fieldset legend { font-size: 13px; font-weight: 500; color: var(--text-secondary
 /* 合计行 & 缺口行 */
 .meal-cell.total-label { background: #e8ecf0; color: #333; font-size: 11px; font-weight: 700; border-radius: 6px; margin: 2px; }
 .meal-cell.meal-total-cell { font-size: 13px; font-weight: 700; color: #333; min-height: 30px; display: flex; align-items: center; justify-content: center; background: #f8f9fa; }
+.meal-cell.target-label { background: #d4edda; color: #155724; font-size: 11px; font-weight: 700; border-radius: 6px; margin: 2px; }
+.meal-cell.meal-target-cell { font-size: 12px; font-weight: 600; color: #155724; min-height: 28px; display: flex; align-items: center; justify-content: center; background: #e8f5e9; }
 .meal-cell.deficit-label { background: #fff3cd; color: #856404; font-size: 11px; font-weight: 700; border-radius: 6px; margin: 2px; }
 .meal-cell.meal-deficit-cell { font-size: 11px; font-weight: 600; min-height: 28px; display: flex; align-items: center; justify-content: center; }
 .meal-deficit-cell.deficit-good { color: #28a745; background: #e6f7e6; }
@@ -644,6 +646,7 @@ fieldset legend { font-size: 13px; font-weight: 500; color: var(--text-secondary
 .meal-exercise-cell:hover { background: #e8f5e9; }
 .meal-exercise-cell.has-exercise { color: #2e7d32; font-weight: 500; background: #e8f5e9; }
 .meal-exercise-cell .ex-kcal { display: block; font-size: 10px; color: var(--primary); margin-top: 1px; }
+.meal-exercise-cell .ex-chip { display: inline-block; font-size: 11px; background: #e8f5e9; color: #2e7d32; border-radius: 4px; padding: 1px 6px; margin: 1px; white-space: nowrap; }
 .meal-tdee-cell {
   text-align: center; font-size: 11px; color: var(--text-secondary);
   padding: 4px; background: #fafafa; min-height: auto;
